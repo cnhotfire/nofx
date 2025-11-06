@@ -490,6 +490,7 @@ func extractDecisions(response string) ([]Decision, error) {
 		jsonContent := strings.TrimSpace(m[1])
 		jsonContent = compactArrayOpen(jsonContent) // 把 "[ {" 规整为 "[{"
 		jsonContent = fixMissingQuotes(jsonContent) // 二次修复（防止 regex 提取后还有残留全角）
+		jsonContent = cleanThousandsSeparators(jsonContent) // 清理千位分隔符
 		if err := validateJSONFormat(jsonContent); err != nil {
 			return nil, fmt.Errorf("JSON格式验证失败: %w\nJSON内容: %s\n完整响应:\n%s", err, jsonContent, response)
 		}
@@ -526,6 +527,9 @@ func extractDecisions(response string) ([]Decision, error) {
 	// 🔧 规整格式（此时全角字符已在前面修复过）
 	jsonContent = compactArrayOpen(jsonContent)
 	jsonContent = fixMissingQuotes(jsonContent) // 二次修复（防止 regex 提取后还有残留全角）
+
+	// 🔧 清理千位分隔符（避免AI输出 103,000 这样的格式）
+	jsonContent = cleanThousandsSeparators(jsonContent)
 
 	// 🔧 验证 JSON 格式（检测常见错误）
 	if err := validateJSONFormat(jsonContent); err != nil {
@@ -570,6 +574,26 @@ func fixMissingQuotes(jsonStr string) string {
 	return jsonStr
 }
 
+// cleanThousandsSeparators 清理 JSON 中的千位分隔符
+func cleanThousandsSeparators(jsonStr string) string {
+	// 使用正则表达式匹配数字中的千位分隔符：数字 + 逗号 + 3位数字
+	// 但要避免匹配 JSON 语法中的逗号（如数组或对象分隔符）
+
+	// 匹配模式：数字内部的开位分隔符
+	// 正则：\d,\d{3} 匹配如 1,000 或 123,456
+	re := regexp.MustCompile(`(\d),(\d{3})`)
+
+	// 替换所有匹配的千位分隔符
+	cleaned := re.ReplaceAllString(jsonStr, "$1$2")
+
+	// 如果还有千位分隔符（如 1,234,567），递归处理直到没有
+	for strings.Contains(cleaned, ",") && regexp.MustCompile(`\d,\d{3}`).MatchString(cleaned) {
+		cleaned = re.ReplaceAllString(cleaned, "$1$2")
+	}
+
+	return cleaned
+}
+
 // validateJSONFormat 验证 JSON 格式，检测常见错误
 func validateJSONFormat(jsonStr string) error {
 	trimmed := strings.TrimSpace(jsonStr)
@@ -588,17 +612,7 @@ func validateJSONFormat(jsonStr string) error {
 		return fmt.Errorf("JSON 中不可包含范围符号 ~，所有数字必须是精确的单一值")
 	}
 
-	// 检查是否包含千位分隔符（如 98,000）
-	// 使用简单的模式匹配：数字+逗号+3位数字
-	for i := 0; i < len(jsonStr)-4; i++ {
-		if jsonStr[i] >= '0' && jsonStr[i] <= '9' &&
-			jsonStr[i+1] == ',' &&
-			jsonStr[i+2] >= '0' && jsonStr[i+2] <= '9' &&
-			jsonStr[i+3] >= '0' && jsonStr[i+3] <= '9' &&
-			jsonStr[i+4] >= '0' && jsonStr[i+4] <= '9' {
-			return fmt.Errorf("JSON 数字不可包含千位分隔符逗号，发现: %s", jsonStr[i:min(i+10, len(jsonStr))])
-		}
-	}
+	// 注意：千位分隔符检查被移除，因为我们会在解析前自动清理它们
 
 	return nil
 }
