@@ -55,10 +55,6 @@ export default function HeroSection({ language }: HeroSectionProps) {
                   boxShadow: '0 0 20px rgba(240, 185, 11, 0.2)',
                 }}
               >
-<<<<<<< HEAD
-                <Sparkles className='w-4 h-4' style={{ color: 'var(--brand-yellow)' }} />
-                <span className='text-sm font-semibold' style={{ color: 'var(--brand-yellow)' }}>
-=======
                 <Sparkles
                   className="w-4 h-4"
                   style={{ color: 'var(--brand-yellow)' }}
@@ -67,30 +63,21 @@ export default function HeroSection({ language }: HeroSectionProps) {
                   className="text-sm font-semibold"
                   style={{ color: 'var(--brand-yellow)' }}
                 >
->>>>>>> dev
                   {isLoading ? (
                     t('githubStarsInDays', language)
                   ) : language === 'zh' ? (
                     <>
                       {daysOld} 天内{' '}
-<<<<<<< HEAD
-                      <span className='inline-block tabular-nums'>{formattedStars}</span>
-=======
                       <span className="inline-block tabular-nums">
                         {(animatedStars / 1000).toFixed(1)}
                       </span>
->>>>>>> dev
                       K+ GitHub Stars
                     </>
                   ) : (
                     <>
-<<<<<<< HEAD
-                      <span className='inline-block tabular-nums'>{formattedStars}</span>
-=======
                       <span className="inline-block tabular-nums">
                         {(animatedStars / 1000).toFixed(1)}
                       </span>
->>>>>>> dev
                       K+ GitHub Stars in {daysOld} days
                     </>
                   )}
